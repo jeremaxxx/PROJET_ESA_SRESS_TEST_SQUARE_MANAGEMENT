@@ -39,6 +39,7 @@ def importing_tes(path):
             df = df[mask].copy()
         
         dfs[year] = df
+
         
     path_countries = path + "/ReadMe_ICIO_small.xlsx"
     df_pays = pd.read_excel(
@@ -51,7 +52,7 @@ def importing_tes(path):
     
     path_nace = path + "/NACE 38 - 88 detaille vf.xlsx"
     descp_nace = pd.read_excel(path_nace)
-    descp_nace.fillna(method='ffill', inplace=True)
+    descp_nace.ffill(inplace=True)
 
     return dfs, df_pays, descp_nace
 
@@ -77,7 +78,7 @@ def leaving_countries(dfs):
     df_agr = {}
     for year, df in dfs.items():
         # Somme des colonnes ayant le même nom
-        df_cols_summed = df.groupby(df.columns, axis=1).sum()
+        df_cols_summed = df.T.groupby(df.T.index).sum().T       
         # Somme des lignes ayant le même nom (index)
         df_rows_summed = df_cols_summed.groupby(df_cols_summed.index).sum()
         df_agr[year] = df_rows_summed
@@ -144,7 +145,6 @@ def changing_nace_framework(df_cleaned, descp_nace):
         df_nace17.index = new_idx
         # Grouper et sommer par NACE 17 (colonnes et lignes)
         df_nace17 = df_nace17.groupby(df_nace17.index).sum()
-        df_nace17 = df_nace17.groupby(axis=1, level=0).sum()
-
+        df_nace17 = df_nace17.T.groupby(level=0).sum().T
         df_sum_nace17[year] = df_nace17
     return df_sum_nace17 

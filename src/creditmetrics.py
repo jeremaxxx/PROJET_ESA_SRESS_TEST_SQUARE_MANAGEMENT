@@ -38,7 +38,7 @@ class CreditMetrics:
         # 3. Migration PIT
         complete_monthly_counts = self._create_complete_monthly_migration_counts(self.sector.quarterly_data)
         self.migration_pit = self._create_matrice_PIT(complete_monthly_counts)
-
+        self.migration_ttc_moyenne = self.migration_pit.groupby(level=1).mean()
         # 4. Barrières
         self.barrier_matrix = self._calculate_barrier_matrix(self.migration_ttc)
 

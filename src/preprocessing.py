@@ -98,12 +98,12 @@ def annualize_and_fill_ratings(df, obligor_col='obligor_name', date_col='rating_
     # --- Étape 3 : Nettoyage Final ---
     # L'année est dans l'index, la remettre en colonne
     data_filled = data_filled.reset_index().rename(columns={'index': 'year'})
+
     # S'assurer que le type de la colonne 'year' est un entier
     data_filled['year'] = data_filled['year'].astype(int)
     # Recalculer les colonnes basées sur la date pour les nouvelles lignes créées
     # data_filled['year_month'] = pd.to_datetime(data_filled['year'].astype(str) + '-01-01')
-
-    data_filled['next_rating'] = data_filled.groupby('obligor_name')['rating'].shift(-1)
+    data_filled['next_rating'] = data_filled['rating'].shift(-1)
 
     # Filtrer pour retirer les lignes où 'next_rating' est NaN (dernière notation de chaque entreprise)
     data_filled_final = data_filled.dropna(subset=['next_rating'])
@@ -209,46 +209,35 @@ def truncating_data(data, date_begin, date_finish):
 
 @dataclass
 class SectorPortfolio:
-    """
-    Classe représentant un portefeuille sectoriel avec ses données annuelles et trimestrielles
-    """
     name: str
     sectors: List[str]
     annual_data: pd.DataFrame
     quarterly_data: pd.DataFrame
-    
+    countries: Optional[List[str]] = None # Pour garder trace du filtre actuel
+
     @classmethod
-    def create_from_processed_data(cls,
-                                name: str,
-                                sectors: List[str],
-                                annual_data: pd.DataFrame,
-                                quarterly_data: pd.DataFrame) -> 'SectorPortfolio':
-        """
-        Crée un nouveau portefeuille sectoriel à partir des données déjà traitées.
-        
-        Parameters:
-        -----------
-        name : str
-            Nom du portefeuille
-        sectors : List[str]
-            Liste des codes NACE à inclure
-        annual_data : pd.DataFrame
-            DataFrame des données annuelles déjà traitées
-        quarterly_data : pd.DataFrame
-            DataFrame des données trimestrielles déjà traitées
-            
-        Returns:
-        --------
-        SectorPortfolio
-            Nouveau portefeuille sectoriel
-        """
-        # Filtrer les données annuelles et trimestrielles par secteur
+    def create_from_processed_data(cls, name, sectors, annual_data, quarterly_data):
+        # Cette méthode reste simple : elle filtre juste par secteur (NACE)
         annual_sector_data = annual_data[annual_data['nace'].isin(sectors)].copy()
         quarterly_sector_data = quarterly_data[quarterly_data['nace'].isin(sectors)].copy()
         
-        return cls(name=name,
-                  sectors=sectors,
-                  annual_data=annual_sector_data,
-                  quarterly_data=quarterly_sector_data)
-    
-    # Rajout d'autres fonction pour montrer la pertinence des différents regourpements sectoriels
+        return cls(name=name, sectors=sectors, 
+                   annual_data=annual_sector_data, 
+                   quarterly_data=quarterly_sector_data)
+
+    def filter_by_region(self, region_name: str, country_list: List[str]) -> 'SectorPortfolio':
+        """
+        Crée une copie du portefeuille filtrée sur une zone géographique précise.
+        """
+        # Filtrage des deux DataFrames sur la liste de pays
+        new_annual = self.annual_data[self.annual_data['pays'].isin(country_list)].copy()
+        new_quarterly = self.quarterly_data[self.quarterly_data['pays'].isin(country_list)].copy()
+        
+        # Retourne un nouvel objet SectorPortfolio
+        return SectorPortfolio(
+            name=f"{self.name} - {region_name}",
+            sectors=self.sectors,
+            countries=country_list,
+            annual_data=new_annual,
+            quarterly_data=new_quarterly
+        )

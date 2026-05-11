@@ -25,4 +25,5 @@ build/
 *.csv
 *.xlsx
 *.xls
+*.zip
 !data/sample_*.xlsx  # Allow sample data files to be versioned
